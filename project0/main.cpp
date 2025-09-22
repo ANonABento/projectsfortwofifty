@@ -109,7 +109,12 @@ public:
         return true;
     }
 
-
+    bool update(double p) {
+        if (p <= 0) return false;
+        potential = p;
+        recompute();
+        return true;
+    }
 };
 
 int main() {
@@ -118,6 +123,7 @@ int main() {
     int n, m;
     char t; 
     int x, y;
+    double p;
 
     while (cin >> input) {
         if (input == "CREATE") {
@@ -141,7 +147,9 @@ int main() {
             else cout << "failure\n";
         } 
         else if (input == "UPDATE") {
-    
+            cin >> p;
+            if (map.update(p)) cout << "success\n";
+            else cout << "failure\n";
         } 
         else if (input == "EXIT") {
             break;
