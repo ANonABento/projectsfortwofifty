@@ -96,6 +96,20 @@ public:
         cout << px[x][y] << " " << py[x][y] << endl;
         return true;
     }
+
+    bool clear() {
+        if (px == nullptr) return false;
+        for (int i = 0; i < r; i++) {
+            for (int k = 0; k < c; k++) {
+                px[i][k] = 0.0;
+                py[i][k] = 0.0;
+                pointer[i][k] = 0;
+            }
+        }
+        return true;
+    }
+
+
 };
 
 int main() {
@@ -111,19 +125,25 @@ int main() {
             if (map.create(n, m)) cout << "success\n";
             else cout << "failure\n";
 
-        } else if (input == "POINT") {
+        } 
+        else if (input == "POINT") {
             cin >> t >> x >> y;
             if (map.addPoint(t, x, y)) cout << "success\n";
             else cout << "failure\n";
 
-        } else if (input == "MOVE") {
+        } 
+        else if (input == "MOVE") {
             cin >> x >> y;
             if (!map.move(x, y)) cout << "failure\n";
-        } else if (input == "CLEAR") {
-            
-        } else if (input == "UPDATE") {
+        } 
+        else if (input == "CLEAR") {
+            if (map.clear()) cout << "success\n";
+            else cout << "failure\n";
+        } 
+        else if (input == "UPDATE") {
     
-        } else if (input == "EXIT") {
+        } 
+        else if (input == "EXIT") {
             break;
         }
     }
