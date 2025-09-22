@@ -24,7 +24,20 @@ public:
     }
 
     void destructor() {
+        if (pointer != nullptr) {
+            for (int i = 0; i < r; i++) {
+                delete[] pointer[i];
+                delete[] px[i];
+                delete[] py[i];
+            }
+            delete[] pointer;
+            delete[] px;
+            delete[] py;
+        }
         r = c = 0;
+        pointer = nullptr;
+        px = py = nullptr;
+        potential = 1;
     }
 
     bool create(int n, int m) {
