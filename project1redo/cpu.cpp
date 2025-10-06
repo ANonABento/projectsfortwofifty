@@ -131,11 +131,12 @@ bool cpu::shutdown() {
     for (int i = 0; i < num; i++) {
         while (cores[i]->hasTasks()) {
             int pid = cores[i]->stealTask();
-            std::cout << "deleting task " << pid << " from core " << i << " ";
+            cout << "deleting task " << pid << " from core " << i << " ";
             any = true;
         }
+        cout << std::endl;
     }
-    if (!any) std::cout << "no tasks to remove" << std::endl;
+    if (!any) cout << "no tasks to remove" << std::endl;
     return true;
 }
 
