@@ -6,7 +6,7 @@
 class core {
 private:
     int id;
-    dq dq;
+    dq dq1;
 
 public:
     core(int i);

@@ -1,6 +1,8 @@
 #include "cpu.h"
 #include <iostream>
 
+using namespace std;
+
 cpu::cpu() {
     cores = nullptr;
     num = 0;
@@ -97,18 +99,29 @@ bool cpu::run(int cid, int &pid, bool &empty) {
 
 bool cpu::sleep(int cid) {
     if (!active || cid < 0 || cid >= num) return false;
+
     if (!cores[cid]->hasTasks()) {
         std::cout << "core " << cid << " has no tasks to assign" << std::endl;
         return true;
     }
 
     while (cores[cid]->hasTasks()) {
-        int pid = cores[cid]->stealTask(); // pop back
-        int target = findLeast();
-        if (target == cid) break; // just in case
-        cores[target]->addTask(pid);
-        std::cout << "task " << pid << " assigned to core " << target << std::endl;
+        int pid = cores[cid]->stealTask();
+        int best = -1;
+        int bestSize = 999999;
+        for (int i = 0; i < num; i++) {
+            if (i == cid) continue;
+            int s = cores[i]->taskCount();
+            if (s < bestSize || (s == bestSize && i < best)) {
+                best = i;
+                bestSize = s;
+            }
+        }
+        if (best == -1) break;
+        cores[best]->addTask(pid);
+        cout << "task " << pid << " assigned to core " << best << " ";
     }
+    cout << std::endl;
     return true;
 }
 

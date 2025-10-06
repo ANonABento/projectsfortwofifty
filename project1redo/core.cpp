@@ -1,31 +1,31 @@
 #include "core.h"
 
-core::core(int i) : id(i), dq(4) {}
+core::core(int i) : id(i), dq1(4) {}
 
 int core::getId() { 
     return id; 
 }
 
 void core::addTask(int pid) {
-    dq.pushBack(pid);
+    dq1.pushBack(pid);
 }
 
 int core::runTask() {
-    return dq.popFront();
+    return dq1.popFront();
 }
 
 int core::stealTask() {
-    return dq.popBack();
+    return dq1.popBack();
 }
 
 int core::taskCount() {
-    return dq.getSize();
+    return dq1.getSize();
 }
 
 int core::getCap() {
-    return dq.getCap();
+    return dq1.getCap();
 }
 
 bool core::hasTasks() {
-    return !dq.isEmpty();
+    return !dq1.isEmpty();
 }
