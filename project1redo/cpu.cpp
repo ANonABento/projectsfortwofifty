@@ -14,8 +14,12 @@ cpu::~cpu() {
 }
 
 bool cpu::on(int n) {
-    if (active) return false;
-    if (n <= 1) return false;
+    if (active){
+        return false;
+    }
+    if (n <= 1) {
+        return false;
+    }
     num = n;
     cores = new core*[num];
     for (int i = 0; i < num; i++) {
@@ -26,7 +30,9 @@ bool cpu::on(int n) {
 }
 
 void cpu::off() {
-    if (!active) return;
+    if (!active){
+        return;
+    }
     for (int i = 0; i < num; i++) {
         delete cores[i];
     }
@@ -53,7 +59,9 @@ int cpu::findMost(int skip) {
     int idx = -1;
     int biggest = -1;
     for (int i = 0; i < num; i++) {
-        if (i == skip) continue;
+        if (i == skip){
+            continue;
+        }
         int s = cores[i]->taskCount();
         if (s > biggest || (s == biggest && idx > i)) {
             biggest = s;
@@ -64,15 +72,18 @@ int cpu::findMost(int skip) {
 }
 
 bool cpu::spawn(int pid, int &cid) {
-    if (!active || pid <= 0) return false;
+    if (!active || pid <= 0) {
+        return false;
+    }
     cid = findLeast();
     cores[cid]->addTask(pid);
     return true;
 }
 
 bool cpu::run(int cid, int &pid, bool &empty) {
-    if (!active || cid < 0 || cid >= num) return false;
-
+    if (!active || cid < 0 || cid >= num) {
+        return false;
+    }
     if (!cores[cid]->hasTasks()) {
         empty = true;
         int stealFrom = findMost(cid);
@@ -98,7 +109,9 @@ bool cpu::run(int cid, int &pid, bool &empty) {
 }
 
 bool cpu::sleep(int cid) {
-    if (!active || cid < 0 || cid >= num) return false;
+    if (!active || cid < 0 || cid >= num) {
+        return false;
+    }
 
     if (!cores[cid]->hasTasks()) {
         std::cout << "core " << cid << " has no tasks to assign" << std::endl;
@@ -126,30 +139,48 @@ bool cpu::sleep(int cid) {
 }
 
 bool cpu::shutdown() {
-    if (!active) return false;
+    if (!active) {
+        return false;
+    }
     bool any = false;
+    bool firstPrinted = false;
+
     for (int i = 0; i < num; i++) {
         while (cores[i]->hasTasks()) {
-            int pid = cores[i]->stealTask();
-            cout << "deleting task " << pid << " from core " << i << " ";
+            int pid = cores[i]->runTask();
+            if (firstPrinted){
+                std::cout << " ";
+            }
+            std::cout << "deleting task " << pid << " from core " << i;
+            firstPrinted = true;
             any = true;
         }
-        cout << std::endl;
     }
-    if (!any) cout << "no tasks to remove" << std::endl;
+    if (any) {
+        std::cout << std::endl;
+    }
+    else {
+        std::cout << "no tasks to remove" << std::endl;
+    }
     return true;
 }
 
 bool cpu::size(int cid, int &out) {
-    if (!active || cid < 0 || cid >= num) return false;
+    if (!active || cid < 0 || cid >= num) {
+        return false;
+    }
     out = cores[cid]->taskCount();
     return true;
 }
 
 bool cpu::capacity(int cid, int &out) {
-    if (!active || cid < 0 || cid >= num) return false;
+    if (!active || cid < 0 || cid >= num){
+        return false;
+    }
     out = cores[cid]->getCap();
     return true;
 }
 
-bool cpu::isOn() { return active; }
+bool cpu::isOn() { 
+    return active; 
+}
