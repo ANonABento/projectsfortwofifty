@@ -3,6 +3,16 @@
 
 #include "core.h"
 
+/*
+CITATION:
+I consulted GPT-5 for general guidance on organizing
+the CPU–core interaction and load-balancing logic. The specific
+functions and control flow were written and adjusted by
+me to match the project specifications.
+I needed additional help with the sleep and run functions,
+which I also discussed with GPT-5. I implemented it's suggestions
+regarding loop logic and formatting issues.
+*/
 class cpu {
 private:
     core **cores;

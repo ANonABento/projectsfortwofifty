@@ -1,6 +1,13 @@
 #ifndef dq_h
 #define dq_h
 
+/*
+CITATION:
+Parts of this class were discussed with chat.openai.com to clarify
+how to correctly implement a circular dynamic array and handle resizing
+logic. I wrote and debugged the final version myself to fit project
+requirements and ensure proper memory management.
+*/
 class dq {
 private:
     int *arr;

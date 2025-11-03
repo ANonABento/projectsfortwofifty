@@ -1,9 +1,14 @@
 #include <iostream>
-#include <sstream>
 #include "cpu.h"
 
 using namespace std;
 
+/*
+CITATION:
+I referenced my own work from lab quiz 0 and 1 for the string parsing and
+command-handling structure in this file.
+ChatGPT was used to check if my nested if statements were organized correctly.
+*/
 int main() {
     cpu cpu1;
     string input;
