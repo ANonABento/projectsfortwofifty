@@ -58,7 +58,7 @@ int main() {
             
             int pos = hashTable->search(id);
             if(pos != -1) {
-                cout << "found ID in " << pos << endl;
+                cout << "found " << id << " in " << pos << endl;
             } else {
                 cout << "not found" << endl;
             }
