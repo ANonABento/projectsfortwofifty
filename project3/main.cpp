@@ -15,6 +15,7 @@ int main() {
             string filename;
             cin >> filename;
             trie.load(filename);
+            // always output success for LOAD
             cout << "success" << endl;
         } 
         else if(command == "INSERT") {
@@ -22,7 +23,7 @@ int main() {
             // clear the newline left by 'cin >> command' before using getline
             cin.ignore(); 
             getline(cin, classification);
-            
+            // need try-catch for illegal_exception
             try {
                 bool result = trie.insert(classification);
                 if(result == true) {
