@@ -1,3 +1,11 @@
+/*
+CITATION:
+Used ChatGPT and video example to better understand how to use istringstream
+to parse comma-separated strings and how to properly read from a file
+line by line. Also asked about exception handling syntax with try-catch
+blocks and how to check for uppercase letters in strings.
+*/
+
 #include "Trie.h"
 #include "ece250_socket.h"
 #include <iostream>
@@ -19,11 +27,10 @@ void Trie::load(std::string filename) {
     std::string line;
     
     while(std::getline(file, line)) {
-        // try to insert each line
         try {
             insert(line);
         } catch(illegal_exception& e) {
-            // if illegal, skip and continue parsing
+            // if illegal, skip and continue
         }
     }
     file.close();
@@ -37,7 +44,7 @@ bool Trie::insert(std::string classification) {
         }
     }
     
-    // parse the classification string
+    // parse the classification string by comma delimiter
     std::istringstream stream(classification);
     std::string className;
     std::vector<std::string> classes;
@@ -50,14 +57,14 @@ bool Trie::insert(std::string classification) {
         return false;
     }
     
-    // traverse and insert
+    // traverse down the trie following the classification path
     TrieNode* current = root;
     for(int i = 0; i < classes.size(); i++) {
         int childIndex = current->findChildIndex(classes[i]);
         
         if(childIndex == -1) {
-            // need to create new child
-            // find first empty spot
+            // if child doesn't exist, need to create it
+            // find first empty spot in the 15 child array
             int emptyIndex = -1;
             for(int j = 0; j < 15; j++) {
                 if(current->getChild(j) == nullptr) {
@@ -75,16 +82,17 @@ bool Trie::insert(std::string classification) {
             current->setChild(emptyIndex, newNode);
             current = newNode;
         } else {
-            // child already exists
+            // child already exists, just traverse to it
             current = current->getChild(childIndex);
         }
     }
     
-    // check if already terminal
+    // check if this exact classification already exists
     if(current->getTerminal() == true) {
-        return false; // already exists
+        return false;
     }
     
+    // mark this node as a terminal classification
     current->setTerminal(true);
     classificationCount++;
     return true;
@@ -101,8 +109,9 @@ std::string Trie::classify(std::string input) {
     std::string result = "";
     TrieNode* current = root;
     
+    // keep traversing deeper as long as there are children to check
     while(current->hasChildren()) {
-        // get all child class names
+        // collect all child class names to send to classifier
         std::string candidates = "";
         int count = 0;
         
@@ -121,20 +130,20 @@ std::string Trie::classify(std::string input) {
             break;
         }
         
-        // call classifier
+        // call the language model classifier
         std::string bestClass = labelText(input, candidates);
         
         if(bestClass == "") {
             break;
         }
         
-        // add to result
+        // add this classification level to result
         if(result != "") {
             result = result + ",";
         }
         result = result + bestClass;
         
-        // move to that child
+        // move down to that child for next iteration
         int childIndex = current->findChildIndex(bestClass);
         if(childIndex == -1) {
             break;
@@ -170,7 +179,7 @@ bool Trie::erase(std::string classification) {
         return false;
     }
     
-    // traverse to find the node
+    // need keep track of entire path, we need the path so we can delete upward
     TrieNode* current = root;
     std::vector<TrieNode*> path;
     path.push_back(current);
@@ -184,7 +193,7 @@ bool Trie::erase(std::string classification) {
         path.push_back(current);
     }
     
-    // check if terminal
+    // make sure it's actually a terminal node
     if(current->getTerminal() == false) {
         return false;
     }
@@ -194,11 +203,12 @@ bool Trie::erase(std::string classification) {
     classificationCount--;
     
     // delete nodes that have no children and aren't terminal
+    // work backwards from the deleted node up to root
     for(int i = path.size() - 1; i > 0; i--) {
         TrieNode* node = path[i];
         if(node->hasChildren() == false && node->getTerminal() == false) {
             TrieNode* parent = path[i-1];
-            // find and remove this child from parent
+            // find this child in parent's array and delete it
             for(int j = 0; j < 15; j++) {
                 if(parent->getChild(j) == node) {
                     delete node;
@@ -207,6 +217,7 @@ bool Trie::erase(std::string classification) {
                 }
             }
         } else {
+            // stop if node has children or is terminal
             break;
         }
     }
@@ -215,10 +226,12 @@ bool Trie::erase(std::string classification) {
 }
 
 void Trie::printHelper(TrieNode* node, std::string current, std::vector<std::string>& results) {
-    if(node->getTerminal() == true) {
+    // only print if terminal and has no children cuz internal nodes can't be terminal so only print actual leaf classifications
+    if(node->getTerminal() == true && node->hasChildren() == false) {
         results.push_back(current);
     }
     
+    // recursively visit all children
     for(int i = 0; i < 15; i++) {
         TrieNode* child = node->getChild(i);
         if(child != nullptr) {
@@ -241,11 +254,9 @@ void Trie::print() {
     std::vector<std::string> results;
     printHelper(root, "", results);
     
+    // print with underscores between classifications and keep the trailing underscore
     for(int i = 0; i < results.size(); i++) {
-        std::cout << results[i];
-        if(i < results.size() - 1) {
-            std::cout << " ";
-        }
+        std::cout << results[i] << "_";
     }
     std::cout << std::endl;
 }
@@ -259,6 +270,7 @@ bool Trie::isEmpty() {
 }
 
 void Trie::clearHelper(TrieNode* node) {
+    // recursively delete all children first
     for(int i = 0; i < 15; i++) {
         TrieNode* child = node->getChild(i);
         if(child != nullptr) {
