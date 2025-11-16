@@ -3,6 +3,7 @@
 TrieNode::TrieNode() {
     className = "";
     isTerminal = false;
+    // initialize all children to null - there are exactly 15 slots
     for(int i = 0; i < 15; i++) {
         children[i] = nullptr;
     }
@@ -23,7 +24,8 @@ of pointers to nullptr and how to recursively delete all children
 in a tree structure. Used the explanation to write my destructor.
 */
 TrieNode::~TrieNode() {
-    // delete all children recursively
+    // delete all children recursively to avoid memory leaks
+    // trick: need to delete each child which triggers their destructors
     for(int i = 0; i < 15; i++) {
         if(children[i] != nullptr) {
             delete children[i];
@@ -58,7 +60,7 @@ std::string TrieNode::getClassName() {
 }
 
 int TrieNode::findChildIndex(std::string name) {
-    // look through all children to find one with matching name
+    // just a linear search through all 15 children
     for(int i = 0; i < 15; i++) {
         if(children[i] != nullptr) {
             if(children[i]->getClassName() == name) {
@@ -70,6 +72,7 @@ int TrieNode::findChildIndex(std::string name) {
 }
 
 bool TrieNode::hasChildren() {
+    // check if any of the 15 slots have a child
     for(int i = 0; i < 15; i++) {
         if(children[i] != nullptr) {
             return true;
