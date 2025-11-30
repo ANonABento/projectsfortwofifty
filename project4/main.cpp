@@ -1,3 +1,6 @@
+// main.cpp
+// Main program for testing graph
+
 #include "Graph.h"
 #include <iostream>
 #include <string>
@@ -46,22 +49,23 @@ int main() {
             cin >> id;
             
             try {
-                vector<string> adjacent = graph.printAdjacent(id);
-                if(adjacent.size() == 0) {
-                    Node* node = graph.getNode(id);
-                    if(node == nullptr) {
-                        cout << "failure" << endl;
-                    } else {
-                        cout << endl; // blank line if no neighbors
-                    }
+                // check if node exists first
+                Node* node = graph.getNode(id);
+                if(node == nullptr) {
+                    cout << "failure" << endl;
                 } else {
-                    for(int i = 0; i < adjacent.size(); i++) {
-                        cout << adjacent[i];
-                        if(i < adjacent.size() - 1) {
-                            cout << " ";
+                    vector<string> adjacent = graph.printAdjacent(id);
+                    if(adjacent.size() == 0) {
+                        cout << endl; // blank line if no neighbors
+                    } else {
+                        for(int i = 0; i < adjacent.size(); i++) {
+                            cout << adjacent[i];
+                            if(i < adjacent.size() - 1) {
+                                cout << " ";
+                            }
                         }
+                        cout << endl;
                     }
-                    cout << endl;
                 }
             } catch(illegal_exception& e) {
                 cout << "illegal argument" << endl;
