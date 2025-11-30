@@ -1,7 +1,10 @@
+// Graph.cpp
+// Implementation of Graph class
+
 /*
 CITATION:
 Used ChatGPT (chat.openai.com) to understand Dijkstra's algorithm for
-finding highest weight paths (had to modify it since we want max weight
+finding highest weight paths (had to modify it since we want MAX weight
 not min distance). Also asked about how to use a priority queue with
 custom comparators in C++ and how to check if a string contains only
 alphanumeric characters for the illegal argument checks.
@@ -188,23 +191,31 @@ std::vector<std::string> Graph::findPath(std::string id1, std::string id2, doubl
     }
     
     std::vector<std::string> result;
+    totalWeight = 0;
     
-    if(nodes.find(id1) == nodes.end() || nodes.find(id2) == nodes.end()) {
+    if(isEmpty() || nodes.find(id1) == nodes.end() || nodes.find(id2) == nodes.end()) {
+        return result;
+    }
+    
+    // special case: same node
+    if(id1 == id2) {
+        result.push_back(id1);
         return result;
     }
     
     // modified Dijkstra for MAXIMUM weight path instead of minimum
-    // this was tricky to get right - had to flip all the comparisons
     std::map<std::string, double> maxWeight;
     std::map<std::string, std::string> previous;
+    std::map<std::string, bool> visited;
     
-    // initialize all weights to negative infinity
+    // initialize
     for(auto it = nodes.begin(); it != nodes.end(); it++) {
         maxWeight[it->first] = -std::numeric_limits<double>::infinity();
+        visited[it->first] = false;
     }
     maxWeight[id1] = 0.0;
     
-    // priority queue for max weight (use negative to make it max heap)
+    // priority queue - use negative for max heap behavior
     std::priority_queue<std::pair<double, std::string>> pq;
     pq.push(std::make_pair(0.0, id1));
     
@@ -212,6 +223,12 @@ std::vector<std::string> Graph::findPath(std::string id1, std::string id2, doubl
         std::string current = pq.top().second;
         double currentWeight = pq.top().first;
         pq.pop();
+        
+        // skip if already visited with better weight
+        if(visited[current]) {
+            continue;
+        }
+        visited[current] = true;
         
         if(current == id2) {
             break;
@@ -222,22 +239,29 @@ std::vector<std::string> Graph::findPath(std::string id1, std::string id2, doubl
         
         for(int i = 0; i < currentEdges.size(); i++) {
             Node* neighbor = currentEdges[i]->getOtherEnd(currentNode);
+            std::string neighborId = neighbor->getId();
+            
+            if(visited[neighborId]) {
+                continue;
+            }
+            
             double edgeWeight = currentEdges[i]->getWeight();
             double newWeight = currentWeight + edgeWeight;
             
-            if(newWeight > maxWeight[neighbor->getId()]) {
-                maxWeight[neighbor->getId()] = newWeight;
-                previous[neighbor->getId()] = current;
-                pq.push(std::make_pair(newWeight, neighbor->getId()));
+            if(newWeight > maxWeight[neighborId]) {
+                maxWeight[neighborId] = newWeight;
+                previous[neighborId] = current;
+                pq.push(std::make_pair(newWeight, neighborId));
             }
         }
     }
     
-    // reconstruct path
-    if(previous.find(id2) == previous.end() && id1 != id2) {
-        return result; // no path found
+    // check if path exists
+    if(maxWeight[id2] == -std::numeric_limits<double>::infinity()) {
+        return result; // no path
     }
     
+    // reconstruct path backwards
     std::string current = id2;
     while(current != id1) {
         result.push_back(current);
@@ -249,7 +273,7 @@ std::vector<std::string> Graph::findPath(std::string id1, std::string id2, doubl
     }
     result.push_back(id1);
     
-    // reverse to get path from id1 to id2
+    // reverse to get correct order
     std::reverse(result.begin(), result.end());
     
     totalWeight = maxWeight[id2];
