@@ -1,13 +1,12 @@
-// Graph.cpp
-// Implementation of Graph class
-
 /*
 CITATION:
 Used ChatGPT (chat.openai.com) to understand Dijkstra's algorithm for
 finding highest weight paths (had to modify it since we want MAX weight
 not min distance). Also asked about how to use a priority queue with
 custom comparators in C++ and how to check if a string contains only
-alphanumeric characters for the illegal argument checks.
+alphanumeric characters for the illegal argument checks. Later switched
+to DFS approach for finding all possible paths and selecting the one
+with maximum weight.
 */
 
 #include "Graph.h"
@@ -17,6 +16,11 @@ alphanumeric characters for the illegal argument checks.
 #include <queue>
 #include <algorithm>
 #include <limits>
+
+// Forward declare helper function for DFS
+void findPathDFS(Node* current, Node* endNode, double currentWeight, 
+                 std::vector<std::string>& currentPath, double& maxWeight, 
+                 std::vector<std::string>& bestPath, std::map<std::string, bool>& visited);
 
 Graph::Graph() {
     // nothing to initialize
@@ -171,42 +175,11 @@ std::vector<std::string> Graph::printAdjacent(std::string id) {
         Node* neighbor = nodeEdges[i]->getOtherEnd(node);
         result.push_back(neighbor->getId());
     }
-
-    // need to sort to match test case:
+    
+    // sort the results for consistent output
     std::sort(result.begin(), result.end());
     
     return result;
-}
-// Helper function for DFS
-void findPathDFS(Node* current, Node* endNode, double currentWeight, 
-                 std::vector<std::string>& currentPath, double& maxWeight, 
-                 std::vector<std::string>& bestPath, std::map<std::string, bool>& visited) {
-    
-    std::string currId = current->getId();
-    visited[currId] = true;
-    currentPath.push_back(currId);
-
-    if (current == endNode) {
-        // Path found
-        if (currentWeight > maxWeight) {
-            maxWeight = currentWeight;
-            bestPath = currentPath;
-        }
-    } else {
-        // Continue searching
-        std::vector<Edge*> edges = current->getEdges();
-        for (Edge* e : edges) {
-            Node* neighbor = e->getOtherEnd(current);
-            if (!visited[neighbor->getId()]) {
-                findPathDFS(neighbor, endNode, currentWeight + e->getWeight(), 
-                            currentPath, maxWeight, bestPath, visited);
-            }
-        }
-    }
-
-    // acktrack: unmark visited so this node can be used in other paths
-    visited[currId] = false;
-    currentPath.pop_back();
 }
 
 std::vector<std::string> Graph::findPath(std::string id1, std::string id2, double& totalWeight) {
@@ -326,7 +299,7 @@ std::vector<std::string> Graph::findHighest(double& totalWeight) {
     std::string bestEnd = "";
     
     // brute force - check all pairs
-    // this is slow but easier to implement correctly
+    // this is slow but easier to implement
     for(auto it1 = nodes.begin(); it1 != nodes.end(); it1++) {
         for(auto it2 = nodes.begin(); it2 != nodes.end(); it2++) {
             if(it1->first != it2->first) {
@@ -369,6 +342,9 @@ std::vector<std::string> Graph::findAll(std::string fieldType, std::string field
             result.push_back(node->getId());
         }
     }
+    
+    // sort results for consistent output
+    std::sort(result.begin(), result.end());
     
     return result;
 }

@@ -1,6 +1,3 @@
-// main.cpp
-// Main program for testing graph
-
 #include "Graph.h"
 #include <iostream>
 #include <string>
@@ -29,6 +26,7 @@ int main() {
             string id, name, type;
             cin >> id >> name >> type;
             
+            // ENTITY command doesn't check for illegal, always succeeds
             graph.insertEntity(id, name, type);
             cout << "success" << endl;
             
@@ -118,7 +116,7 @@ int main() {
             if(path.size() == 0) {
                 cout << "failure" << endl;
             } else {
-                // only print the first and last node, not the entire path!
+                // only print the first and last node, not the entire path
                 cout << path[0] << " " << path[path.size() - 1] << " ";
                 // format weight
                 if(totalWeight == (int)totalWeight) {
