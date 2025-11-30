@@ -171,8 +171,42 @@ std::vector<std::string> Graph::printAdjacent(std::string id) {
         Node* neighbor = nodeEdges[i]->getOtherEnd(node);
         result.push_back(neighbor->getId());
     }
+
+    // need to sort to match test case:
+    std::sort(result.begin(), result.end());
     
     return result;
+}
+// Helper function for DFS
+void findPathDFS(Node* current, Node* endNode, double currentWeight, 
+                 std::vector<std::string>& currentPath, double& maxWeight, 
+                 std::vector<std::string>& bestPath, std::map<std::string, bool>& visited) {
+    
+    std::string currId = current->getId();
+    visited[currId] = true;
+    currentPath.push_back(currId);
+
+    if (current == endNode) {
+        // Path found
+        if (currentWeight > maxWeight) {
+            maxWeight = currentWeight;
+            bestPath = currentPath;
+        }
+    } else {
+        // Continue searching
+        std::vector<Edge*> edges = current->getEdges();
+        for (Edge* e : edges) {
+            Node* neighbor = e->getOtherEnd(current);
+            if (!visited[neighbor->getId()]) {
+                findPathDFS(neighbor, endNode, currentWeight + e->getWeight(), 
+                            currentPath, maxWeight, bestPath, visited);
+            }
+        }
+    }
+
+    // acktrack: unmark visited so this node can be used in other paths
+    visited[currId] = false;
+    currentPath.pop_back();
 }
 
 std::vector<std::string> Graph::findPath(std::string id1, std::string id2, double& totalWeight) {

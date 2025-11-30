@@ -100,7 +100,12 @@ int main() {
                     for(int i = 0; i < path.size(); i++) {
                         cout << path[i] << " ";
                     }
-                    cout << fixed << setprecision(1) << totalWeight << endl;
+                    // format weight - remove .0 if it's a whole number
+                    if(totalWeight == (int)totalWeight) {
+                        cout << (int)totalWeight << endl;
+                    } else {
+                        cout << fixed << setprecision(1) << totalWeight << endl;
+                    }
                 }
             } catch(illegal_exception& e) {
                 cout << "illegal argument" << endl;
@@ -113,10 +118,14 @@ int main() {
             if(path.size() == 0) {
                 cout << "failure" << endl;
             } else {
-                for(int i = 0; i < path.size(); i++) {
-                    cout << path[i] << " ";
+                // only print the first and last node, not the entire path!
+                cout << path[0] << " " << path[path.size() - 1] << " ";
+                // format weight
+                if(totalWeight == (int)totalWeight) {
+                    cout << (int)totalWeight << endl;
+                } else {
+                    cout << fixed << setprecision(1) << totalWeight << endl;
                 }
-                cout << fixed << setprecision(1) << totalWeight << endl;
             }
             
         } else if(command == "FINDALL") {
@@ -128,11 +137,12 @@ int main() {
             if(results.size() == 0) {
                 cout << "failure" << endl;
             } else {
+                // print each result separated by space
                 for(int i = 0; i < results.size(); i++) {
-                    cout << results[i];
-                    if(i < results.size() - 1) {
+                    if(i > 0) {
                         cout << " ";
                     }
+                    cout << results[i];
                 }
                 cout << endl;
             }
