@@ -26,7 +26,7 @@ int main() {
             string id, name, type;
             cin >> id >> name >> type;
             
-            // ENTITY command doesn't check for illegal, always succeeds
+            // ENTITY command doesn't check for illegal - always succeeds
             graph.insertEntity(id, name, type);
             cout << "success" << endl;
             
@@ -47,23 +47,28 @@ int main() {
             cin >> id;
             
             try {
-                // check if node exists first
+                // Check for illegal characters FIRST before checking if node exists
+                for(int i = 0; i < id.length(); i++) {
+                    char c = id[i];
+                    if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
+                        throw illegal_exception();
+                    }
+                }
+                
+                // Now check if node exists
                 Node* node = graph.getNode(id);
                 if(node == nullptr) {
                     cout << "failure" << endl;
                 } else {
                     vector<string> adjacent = graph.printAdjacent(id);
-                    if(adjacent.size() == 0) {
-                        cout << endl; // blank line if no neighbors
-                    } else {
-                        for(int i = 0; i < adjacent.size(); i++) {
-                            cout << adjacent[i];
-                            if(i < adjacent.size() - 1) {
-                                cout << " ";
-                            }
+                    // Always print something - blank line if no neighbors
+                    for(int i = 0; i < adjacent.size(); i++) {
+                        if(i > 0) {
+                            cout << " ";
                         }
-                        cout << endl;
+                        cout << adjacent[i];
                     }
+                    cout << endl;
                 }
             } catch(illegal_exception& e) {
                 cout << "illegal argument" << endl;
@@ -116,7 +121,7 @@ int main() {
             if(path.size() == 0) {
                 cout << "failure" << endl;
             } else {
-                // only print the first and last node, not the entire path
+                // only print the first and last node, not the entire path!
                 cout << path[0] << " " << path[path.size() - 1] << " ";
                 // format weight
                 if(totalWeight == (int)totalWeight) {
