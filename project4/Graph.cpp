@@ -4,9 +4,7 @@ Used ChatGPT (chat.openai.com) to understand Dijkstra's algorithm for
 finding highest weight paths (had to modify it since we want MAX weight
 not min distance). Also asked about how to use a priority queue with
 custom comparators in C++ and how to check if a string contains only
-alphanumeric characters for the illegal argument checks. Later switched
-to DFS approach for finding all possible paths and selecting the one
-with maximum weight.
+alphanumeric characters for the illegal argument checks.
 */
 
 #include "Graph.h"
@@ -16,11 +14,6 @@ with maximum weight.
 #include <queue>
 #include <algorithm>
 #include <limits>
-
-// Forward declare helper function for DFS
-void findPathDFS(Node* current, Node* endNode, double currentWeight, 
-                 std::vector<std::string>& currentPath, double& maxWeight, 
-                 std::vector<std::string>& bestPath, std::map<std::string, bool>& visited);
 
 Graph::Graph() {
     // nothing to initialize
@@ -299,7 +292,7 @@ std::vector<std::string> Graph::findHighest(double& totalWeight) {
     std::string bestEnd = "";
     
     // brute force - check all pairs
-    // this is slow but easier to implement
+    // this is slow but easier to implement correctly
     for(auto it1 = nodes.begin(); it1 != nodes.end(); it1++) {
         for(auto it2 = nodes.begin(); it2 != nodes.end(); it2++) {
             if(it1->first != it2->first) {
