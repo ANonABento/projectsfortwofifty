@@ -1,0 +1,75 @@
+# --- PHASE 1: INITIAL LOAD & SETUP (Mass Allocation) ---
+# Create temporary files with a large number of entries for a stress test
+# (Assuming your test environment provides these files or you create them)
+# For this example, we'll use in-line commands for clarity and simplicity.
+
+ENTITY A NameA TypeA
+ENTITY B NameB TypeA
+ENTITY C NameC TypeB
+ENTITY D NameD TypeB
+ENTITY E NameE TypeC
+ENTITY F NameF TypeC
+
+RELATIONSHIP A relates B 10.0
+RELATIONSHIP B relates C 5.0
+RELATIONSHIP C relates D 2.0
+RELATIONSHIP D relates A 1.0
+
+# Create a complex path to test findPath temporary arrays
+RELATIONSHIP A long B 1.0
+RELATIONSHIP B long E 100.0
+RELATIONSHIP E long F 1.0
+
+# --- PHASE 2: INSERTION / UPDATE (Allocation and Replacement) ---
+
+# 1. New Entity (Allocation)
+ENTITY G NameG TypeD
+
+# 2. Update existing Entity (No new allocation, just modify)
+ENTITY A NewNameA TypeX
+
+# 3. New Relationship (Allocation)
+RELATIONSHIP D relates E 1.5
+
+# 4. Update existing Relationship (No new allocation, just modify)
+RELATIONSHIP C relates D 20.0
+
+# --- PHASE 3: COMMAND TESTS (Ensure temporary data is cleaned) ---
+
+# 1. Pathfinding (Allocates and frees Dijkstra arrays/vectors)
+PATH A F
+PATH C A
+
+# 2. Highest Path (Runs findPath V^2 times, stressing temporary memory)
+HIGHEST
+
+# 3. Print/FindAll (Allocates and frees result vectors)
+PRINT A
+FINDALL type TypeC
+FINDALL name NameA
+
+# --- PHASE 4: DELETION (Deallocation Test) ---
+
+# 1. Delete Node B (Should delete B and 4 associated edges: A-B, B-C, A-B (long), B-E)
+DELETE B
+
+# 2. Delete Node D (Should delete D and 2 associated edges: C-D, D-E, D-A)
+DELETE D
+
+# 3. Delete a Node that doesn't exist (No allocation, checks error path)
+DELETE Z
+
+# --- PHASE 5: ILLEGAL ARGUMENT TEST (Ensure no crash/leak on error) ---
+
+# 1. Path with illegal character
+PATH A B#
+
+# 2. Delete with illegal character (Checks validation before lookup)
+DELETE C$
+
+# 3. Print a node that no longer exists (Checks failure path)
+PRINT B
+
+# --- PHASE 6: FINAL EXIT ---
+# Graph Destructor should free remaining 3 nodes (A, C, E, F, G) and remaining edges
+EXIT

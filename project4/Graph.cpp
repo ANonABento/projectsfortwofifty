@@ -2,42 +2,65 @@
 CITATION:
 Used ChatGPT (chat.openai.com) to understand Dijkstra's algorithm for
 finding highest weight paths (had to modify it since we want MAX weight
-not min distance). Also asked about how to use a priority queue with
-custom comparators in C++ and how to check if a string contains only
-alphanumeric characters for the illegal argument checks.
+not min distance). Also asked about how to check if a string contains only
+alphanumeric characters for the illegal argument checks. 
 */
 
 #include "Graph.h"
 #include <fstream>
-#include <sstream>
 #include <iostream>
-#include <queue>
 #include <algorithm>
 #include <limits>
+#include <tuple>
 
 Graph::Graph() {
-    // nothing to initialize
+    mapSize = 15013; 
+    nodeMap.resize(mapSize);
 }
 
 Graph::~Graph() {
-    // delete all nodes
-    for(auto it = nodes.begin(); it != nodes.end(); it++) {
-        delete it->second;
+    for(int i = 0; i < nodes.size(); i++) {
+        delete nodes[i];
     }
-    // delete all edges
     for(int i = 0; i < edges.size(); i++) {
         delete edges[i];
     }
 }
 
+unsigned int Graph::hash(const std::string& id) {
+    unsigned int hashVal = 5381;
+    for (char c : id) {
+        hashVal = ((hashVal << 5) + hashVal) + c;
+    }
+    return hashVal % mapSize;
+}
+
+Node* Graph::findNodeById(const std::string& id) {
+    unsigned int h = hash(id);
+    for(Node* node : nodeMap[h]) {
+        if(node->getId() == id) {
+            return node;
+        }
+    }
+    return nullptr;
+}
+
+bool Graph::isValidId(const std::string& id) {
+    for(int i = 0; i < id.length(); i++) {
+        char c = id[i];
+        if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void Graph::loadEntities(std::string filename) {
     std::ifstream file(filename);
-    std::string line;
+    if(!file.is_open()) return;
     
-    while(std::getline(file, line)) {
-        std::istringstream stream(line);
-        std::string id, name, type;
-        stream >> id >> name >> type;
+    std::string id, name, type;
+    while(file >> id >> name >> type) {
         insertEntity(id, name, type);
     }
     file.close();
@@ -45,33 +68,32 @@ void Graph::loadEntities(std::string filename) {
 
 void Graph::loadRelationships(std::string filename) {
     std::ifstream file(filename);
-    std::string line;
+    if(!file.is_open()) return;
     
-    while(std::getline(file, line)) {
-        std::istringstream stream(line);
-        std::string sourceId, label, destId;
-        double weight;
-        stream >> sourceId >> label >> destId >> weight;
+    std::string sourceId, label, destId;
+    double weight;
+    while(file >> sourceId >> label >> destId >> weight) {
         insertRelationship(sourceId, label, destId, weight);
     }
     file.close();
 }
 
 bool Graph::insertEntity(std::string id, std::string name, std::string type) {
-    if(nodes.find(id) != nodes.end()) {
-        // entity exists, update it
-        nodes[id]->setName(name);
-        nodes[id]->setType(type);
+    Node* existing = findNodeById(id);
+    if(existing != nullptr) {
+        existing->setName(name);
+        existing->setType(type);
     } else {
-        // create new entity
         Node* newNode = new Node(id, name, type);
-        nodes[id] = newNode;
+        nodes.push_back(newNode);
+        
+        unsigned int h = hash(id);
+        nodeMap[h].push_back(newNode);
     }
     return true;
 }
 
 Edge* Graph::findEdge(Node* n1, Node* n2) {
-    // check if edge already exists between these two nodes
     std::vector<Edge*> n1Edges = n1->getEdges();
     for(int i = 0; i < n1Edges.size(); i++) {
         Node* other = n1Edges[i]->getOtherEnd(n1);
@@ -82,25 +104,20 @@ Edge* Graph::findEdge(Node* n1, Node* n2) {
     return nullptr;
 }
 
-bool Graph::insertRelationship(std::string sourceId, std::string label, std::string destId, double weight) {
-    // check if both nodes exist
-    if(nodes.find(sourceId) == nodes.end() || nodes.find(destId) == nodes.end()) {
-        return false;
-    }
+bool Graph::insertRelationship(std::string sourceId, std::string label, 
+                               std::string destId, double weight) {
+    Node* source = findNodeById(sourceId);
+    Node* dest = findNodeById(destId);
     
-    Node* source = nodes[sourceId];
-    Node* dest = nodes[destId];
+    if(source == nullptr || dest == nullptr) return false;
     
-    // check if edge already exists
     Edge* existing = findEdge(source, dest);
     if(existing != nullptr) {
-        // update existing edge
         existing->setLabel(label);
         existing->setWeight(weight);
         return true;
     }
     
-    // create new edge (undirected)
     Edge* newEdge = new Edge(source, dest, label, weight);
     edges.push_back(newEdge);
     source->addEdge(newEdge);
@@ -109,250 +126,232 @@ bool Graph::insertRelationship(std::string sourceId, std::string label, std::str
 }
 
 bool Graph::deleteNode(std::string id) {
-    // check for illegal characters
-    for(int i = 0; i < id.length(); i++) {
-        char c = id[i];
-        if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
-            throw illegal_exception();
-        }
-    }
+    if(!isValidId(id)) throw illegal_exception();
     
-    if(nodes.find(id) == nodes.end()) {
-        return false;
-    }
+    Node* nodeToDelete = findNodeById(id);
+    if(nodeToDelete == nullptr) return false;
     
-    Node* nodeToDelete = nodes[id];
-    
-    // remove all edges connected to this node
+    // Get copy of edges since we'll be modifying the node's edge list
     std::vector<Edge*> nodeEdges = nodeToDelete->getEdges();
+    
+    // Remove all edges connected to this node
     for(int i = 0; i < nodeEdges.size(); i++) {
         Edge* edge = nodeEdges[i];
         Node* other = edge->getOtherEnd(nodeToDelete);
         other->removeEdge(edge);
         
-        // remove from graph edges vector
+        // Remove from main edges vector
         for(int j = 0; j < edges.size(); j++) {
             if(edges[j] == edge) {
-                edges.erase(edges.begin() + j);
+                edges[j] = edges.back();
+                edges.pop_back();
                 break;
             }
         }
         delete edge;
     }
     
-    // remove node from map
-    nodes.erase(id);
+    // Remove from hash table
+    unsigned int h = hash(id);
+    for(int i = 0; i < nodeMap[h].size(); i++) {
+        if(nodeMap[h][i] == nodeToDelete) {
+            nodeMap[h][i] = nodeMap[h].back();
+            nodeMap[h].pop_back();
+            break;
+        }
+    }
+    
+    // Remove from nodes vector
+    for(int i = 0; i < nodes.size(); i++) {
+        if(nodes[i] == nodeToDelete) {
+            nodes[i] = nodes.back();
+            nodes.pop_back();
+            break;
+        }
+    }
+    
     delete nodeToDelete;
     return true;
 }
 
 std::vector<std::string> Graph::printAdjacent(std::string id) {
-    // check for illegal characters
-    for(int i = 0; i < id.length(); i++) {
-        char c = id[i];
-        if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
-            throw illegal_exception();
-        }
-    }
+    if(!isValidId(id)) throw illegal_exception();
     
     std::vector<std::string> result;
+    Node* node = findNodeById(id);
+    if(node == nullptr) return result;
     
-    if(nodes.find(id) == nodes.end()) {
-        return result; // empty vector means failure
-    }
-    
-    Node* node = nodes[id];
     std::vector<Edge*> nodeEdges = node->getEdges();
-    
     for(int i = 0; i < nodeEdges.size(); i++) {
         Node* neighbor = nodeEdges[i]->getOtherEnd(node);
         result.push_back(neighbor->getId());
     }
     
-    // sort the results for consistent output
-    std::sort(result.begin(), result.end());
-    
     return result;
 }
 
 std::vector<std::string> Graph::findPath(std::string id1, std::string id2, double& totalWeight) {
-    // check for illegal characters in both IDs
-    for(int i = 0; i < id1.length(); i++) {
-        char c = id1[i];
-        if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
-            throw illegal_exception();
-        }
-    }
-    for(int i = 0; i < id2.length(); i++) {
-        char c = id2[i];
-        if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
-            throw illegal_exception();
-        }
-    }
+    if(!isValidId(id1) || !isValidId(id2)) throw illegal_exception();
     
     std::vector<std::string> result;
     totalWeight = 0;
     
-    if(isEmpty() || nodes.find(id1) == nodes.end() || nodes.find(id2) == nodes.end()) {
-        return result;
-    }
+    Node* start = findNodeById(id1);
+    Node* end = findNodeById(id2);
     
-    // special case: same node
+    if(isEmpty() || start == nullptr || end == nullptr) return result;
+    
     if(id1 == id2) {
         result.push_back(id1);
         return result;
     }
-    
-    // modified Dijkstra for MAXIMUM weight path instead of minimum
-    std::map<std::string, double> maxWeight;
-    std::map<std::string, std::string> previous;
-    std::map<std::string, bool> visited;
-    
-    // initialize
-    for(auto it = nodes.begin(); it != nodes.end(); it++) {
-        maxWeight[it->first] = -std::numeric_limits<double>::infinity();
-        visited[it->first] = false;
-    }
-    maxWeight[id1] = 0.0;
-    
-    // priority queue - use negative for max heap behavior
-    std::priority_queue<std::pair<double, std::string>> pq;
-    pq.push(std::make_pair(0.0, id1));
-    
-    while(!pq.empty()) {
-        std::string current = pq.top().second;
-        double currentWeight = pq.top().first;
-        pq.pop();
-        
-        // skip if already visited with better weight
-        if(visited[current]) {
-            continue;
-        }
-        visited[current] = true;
-        
-        if(current == id2) {
-            break;
-        }
-        
-        Node* currentNode = nodes[current];
-        std::vector<Edge*> currentEdges = currentNode->getEdges();
-        
-        for(int i = 0; i < currentEdges.size(); i++) {
-            Node* neighbor = currentEdges[i]->getOtherEnd(currentNode);
-            std::string neighborId = neighbor->getId();
-            
-            if(visited[neighborId]) {
-                continue;
-            }
-            
-            double edgeWeight = currentEdges[i]->getWeight();
-            double newWeight = currentWeight + edgeWeight;
-            
-            if(newWeight > maxWeight[neighborId]) {
-                maxWeight[neighborId] = newWeight;
-                previous[neighborId] = current;
-                pq.push(std::make_pair(newWeight, neighborId));
-            }
-        }
-    }
-    
-    // check if path exists
-    if(maxWeight[id2] == -std::numeric_limits<double>::infinity()) {
-        return result; // no path
-    }
-    
-    // reconstruct path backwards
-    std::string current = id2;
-    while(current != id1) {
-        result.push_back(current);
-        if(previous.find(current) == previous.end()) {
-            result.clear();
-            return result;
-        }
-        current = previous[current];
-    }
-    result.push_back(id1);
-    
-    // reverse to get correct order
-    std::reverse(result.begin(), result.end());
-    
-    totalWeight = maxWeight[id2];
-    return result;
-}
 
-std::vector<std::string> Graph::findHighest(double& totalWeight) {
-    std::vector<std::string> result;
-    
-    if(edges.size() == 0) {
+    int n = nodes.size();
+
+    // Build a sorted mapping so we can quickly find node indices
+    std::vector<std::pair<Node*, int>> nodeIndices;
+    nodeIndices.reserve(n);
+    for(int i = 0; i < n; i++) {
+        nodeIndices.push_back(std::make_pair(nodes[i], i));
+    }
+    std::sort(nodeIndices.begin(), nodeIndices.end());
+
+    // Find start and end indices with proper error checking
+    auto startIt = std::lower_bound(nodeIndices.begin(), nodeIndices.end(), std::make_pair(start, -1));
+    if(startIt == nodeIndices.end() || startIt->first != start) {
         return result;
     }
+    int startIdx = startIt->second;
     
-    double maxPathWeight = -1;
-    std::string bestStart = "";
-    std::string bestEnd = "";
+    auto endIt = std::lower_bound(nodeIndices.begin(), nodeIndices.end(), std::make_pair(end, -1));
+    if(endIt == nodeIndices.end() || endIt->first != end) {
+        return result;
+    }
+    int endIdx = endIt->second;
+
+    std::vector<double> maxDist(n, -std::numeric_limits<double>::infinity());
+    std::vector<int> parent(n, -1);
+    std::vector<bool> visited(n, false);
+    std::vector<bool> inQueue(n, false);
+
+    maxDist[startIdx] = 0.0;
     
-    // brute force - check all pairs
-    // this is slow but easier to implement correctly
-    for(auto it1 = nodes.begin(); it1 != nodes.end(); it1++) {
-        for(auto it2 = nodes.begin(); it2 != nodes.end(); it2++) {
-            if(it1->first != it2->first) {
-                double pathWeight = 0;
-                std::vector<std::string> path = findPath(it1->first, it2->first, pathWeight);
-                if(path.size() > 0 && pathWeight > maxPathWeight) {
-                    maxPathWeight = pathWeight;
-                    bestStart = it1->first;
-                    bestEnd = it2->first;
+    // Using a heap to implement priority queue
+    std::vector<std::tuple<double, int>> pq;
+    pq.reserve(n);
+    pq.push_back(std::make_tuple(0.0, startIdx));
+    inQueue[startIdx] = true;
+    
+    while(!pq.empty()) {
+        std::pop_heap(pq.begin(), pq.end());
+        std::tuple<double, int> top = pq.back();
+        pq.pop_back();
+        
+        double d = std::get<0>(top);
+        int uIdx = std::get<1>(top);
+        
+        inQueue[uIdx] = false;
+        
+        if(visited[uIdx]) continue;
+        visited[uIdx] = true;
+        
+        if(uIdx == endIdx) break;
+        
+        Node* uNode = nodes[uIdx];
+        std::vector<Edge*> adj = uNode->getEdges();
+        
+        for(int i = 0; i < adj.size(); i++) {
+            Edge* e = adj[i];
+            Node* vNode = e->getOtherEnd(uNode);
+            double weight = e->getWeight();
+            
+            auto it = std::lower_bound(nodeIndices.begin(), nodeIndices.end(), std::make_pair(vNode, -1));
+            if(it == nodeIndices.end() || it->first != vNode) continue;
+            int vIdx = it->second;
+            
+            if(!visited[vIdx]) {
+                double newDist = maxDist[uIdx] + weight;
+                if(newDist > maxDist[vIdx]) {
+                    maxDist[vIdx] = newDist;
+                    parent[vIdx] = uIdx;
+                    
+                    // Only add to queue if not already in queue
+                    if(!inQueue[vIdx]) {
+                        pq.push_back(std::make_tuple(maxDist[vIdx], vIdx));
+                        std::push_heap(pq.begin(), pq.end());
+                        inQueue[vIdx] = true;
+                    }
                 }
             }
         }
     }
     
-    if(bestStart != "") {
-        result = findPath(bestStart, bestEnd, totalWeight);
+    if(maxDist[endIdx] == -std::numeric_limits<double>::infinity()) return result;
+    
+    // Build the path by backtracking through parent pointers
+    int curr = endIdx;
+    while(curr != -1) {
+        result.push_back(nodes[curr]->getId());
+        curr = parent[curr];
     }
     
+    std::reverse(result.begin(), result.end());
+    totalWeight = maxDist[endIdx];
+    
     return result;
+}
+
+std::vector<std::string> Graph::findHighest(double& totalWeight) {
+    std::vector<std::string> bestPath;
+    totalWeight = 0.0;
+    
+    if(nodes.empty() || edges.empty()) return bestPath;
+    
+    double globalMax = -1.0;
+    
+    // Check all pairs of nodes to find highest weight path
+    for(int i = 0; i < nodes.size(); i++) {
+        for(int j = i + 1; j < nodes.size(); j++) {
+            double w = 0;
+            std::vector<std::string> p = findPath(nodes[i]->getId(), nodes[j]->getId(), w);
+            
+            if(!p.empty() && w > globalMax) {
+                globalMax = w;
+                bestPath = p;
+            }
+        }
+    }
+    
+    if(globalMax != -1.0) {
+        totalWeight = globalMax;
+        
+        // Make sure output is in alphabetical order
+        if (bestPath.size() > 1) {
+            if (bestPath.front() > bestPath.back()) {
+                std::reverse(bestPath.begin(), bestPath.end());
+            }
+        }
+    }
+    
+    return bestPath;
 }
 
 std::vector<std::string> Graph::findAll(std::string fieldType, std::string fieldString) {
     std::vector<std::string> result;
-    
-    for(auto it = nodes.begin(); it != nodes.end(); it++) {
-        Node* node = it->second;
-        bool match = false;
-        
-        if(fieldType == "name") {
-            if(node->getName() == fieldString) {
-                match = true;
-            }
-        } else if(fieldType == "type") {
-            if(node->getType() == fieldString) {
-                match = true;
-            }
-        }
-        
-        if(match == true) {
-            result.push_back(node->getId());
+    for(int i = 0; i < nodes.size(); i++) {
+        if(fieldType == "name" && nodes[i]->getName() == fieldString) {
+            result.push_back(nodes[i]->getId());
+        } else if(fieldType == "type" && nodes[i]->getType() == fieldString) {
+            result.push_back(nodes[i]->getId());
         }
     }
-    
-    // sort results for consistent output
-    std::sort(result.begin(), result.end());
-    
     return result;
 }
 
 Node* Graph::getNode(std::string id) {
-    if(nodes.find(id) != nodes.end()) {
-        return nodes[id];
-    }
-    return nullptr;
+    return findNodeById(id);
 }
 
 bool Graph::isEmpty() {
-    if(nodes.size() == 0) {
-        return true;
-    } else {
-        return false;
-    }
+    return nodes.empty();
 }

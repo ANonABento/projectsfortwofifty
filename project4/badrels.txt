@@ -1,0 +1,3 @@
+X l Y 4
+Y l Z 3
+Z l X 1

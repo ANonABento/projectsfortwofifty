@@ -1,11 +1,27 @@
 #include "Graph.h"
 #include <iostream>
 #include <string>
+#include <vector>
 #include <iomanip>
+#include <cmath>
 
 using namespace std;
 
+// Helper to print weight cleanly (Integer if whole number, 1 decimal otherwise)
+void printWeight(double weight) {
+    // Check if weight is effectively an integer (handling small float errors)
+    if (std::abs(weight - std::round(weight)) < 0.0001) {
+        cout << (long long)std::round(weight) << endl;
+    } else {
+        cout << fixed << setprecision(1) << weight << endl;
+    }
+}
+
 int main() {
+    // Optimization: fast I/O
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(NULL);
+
     Graph graph;
     string command;
     
@@ -26,7 +42,6 @@ int main() {
             string id, name, type;
             cin >> id >> name >> type;
             
-            // ENTITY command doesn't check for illegal - always succeeds
             graph.insertEntity(id, name, type);
             cout << "success" << endl;
             
@@ -36,7 +51,7 @@ int main() {
             cin >> sourceId >> label >> destId >> weight;
             
             bool result = graph.insertRelationship(sourceId, label, destId, weight);
-            if(result == true) {
+            if(result) {
                 cout << "success" << endl;
             } else {
                 cout << "failure" << endl;
@@ -47,25 +62,16 @@ int main() {
             cin >> id;
             
             try {
-                // Check for illegal characters FIRST before checking if node exists
-                for(int i = 0; i < id.length(); i++) {
-                    char c = id[i];
-                    if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
-                        throw illegal_exception();
-                    }
-                }
+                // Check validity first
+                if(!graph.isValidId(id)) throw illegal_exception();
                 
-                // Now check if node exists
                 Node* node = graph.getNode(id);
                 if(node == nullptr) {
                     cout << "failure" << endl;
                 } else {
                     vector<string> adjacent = graph.printAdjacent(id);
-                    // Always print something - blank line if no neighbors
                     for(int i = 0; i < adjacent.size(); i++) {
-                        if(i > 0) {
-                            cout << " ";
-                        }
+                        if(i > 0) cout << " ";
                         cout << adjacent[i];
                     }
                     cout << endl;
@@ -80,7 +86,7 @@ int main() {
             
             try {
                 bool result = graph.deleteNode(id);
-                if(result == true) {
+                if(result) {
                     cout << "success" << endl;
                 } else {
                     cout << "failure" << endl;
@@ -103,12 +109,7 @@ int main() {
                     for(int i = 0; i < path.size(); i++) {
                         cout << path[i] << " ";
                     }
-                    // format weight - remove .0 if it's a whole number
-                    if(totalWeight == (int)totalWeight) {
-                        cout << (int)totalWeight << endl;
-                    } else {
-                        cout << fixed << setprecision(1) << totalWeight << endl;
-                    }
+                    printWeight(totalWeight);
                 }
             } catch(illegal_exception& e) {
                 cout << "illegal argument" << endl;
@@ -121,14 +122,9 @@ int main() {
             if(path.size() == 0) {
                 cout << "failure" << endl;
             } else {
-                // only print the first and last node, not the entire path!
+                // Output first and last node IDs
                 cout << path[0] << " " << path[path.size() - 1] << " ";
-                // format weight
-                if(totalWeight == (int)totalWeight) {
-                    cout << (int)totalWeight << endl;
-                } else {
-                    cout << fixed << setprecision(1) << totalWeight << endl;
-                }
+                printWeight(totalWeight);
             }
             
         } else if(command == "FINDALL") {
@@ -140,11 +136,8 @@ int main() {
             if(results.size() == 0) {
                 cout << "failure" << endl;
             } else {
-                // print each result separated by space
                 for(int i = 0; i < results.size(); i++) {
-                    if(i > 0) {
-                        cout << " ";
-                    }
+                    if(i > 0) cout << " ";
                     cout << results[i];
                 }
                 cout << endl;
